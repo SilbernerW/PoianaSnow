@@ -1,17 +1,17 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 from datetime import date, timedelta
 
 # --- 1. Generate Synthetic Data ---
-# Since specific daily historical snow data for Poiana Brasov over 5 years is not easily accessible online,
-# we will simulate a dataset for demonstration purposes.
-# Replace this section with your actual data when you have it.
+# As before, we use synthetic data because specific daily historical snow data
+# is not readily available through standard searches.
+# When you have actual data, replace this section with your data import.
 
-def generate_synthetic_data():
-    """Generates synthetic snow depth data for 5 winter seasons."""
+def generate_synthetic_data(num_years=5):
+    """Generates synthetic snow depth data for multiple winter seasons."""
     base_year = 2021
-    num_years = 5
     start_month = 12  # Winter starts in December
     end_month = 4     # Winter ends in April
 
@@ -23,55 +23,47 @@ def generate_synthetic_data():
         dates = pd.date_range(start=f'{current_year}-{start_month}-01', end=f'{current_year+1}-{end_month}-30')
         season_label = f"Winter {current_year}-{current_year+1}"
 
-        # Simulate a realistic-looking snow depth pattern for a season
+        # Simulate a realistic-looking snow depth pattern
         snow_depths = []
         for i, d in enumerate(dates):
-            # A simple sinusoidal curve to simulate accumulation and melting
+            # A simple sinusoidal curve with a random component
             peak_day = dates.size // 2
-            amplitude = np.random.uniform(70, 100)  # Peak snow depth between 70-100 cm
-            offset = amplitude * 0.5  # Ensure values stay positive
+            amplitude = np.random.uniform(70, 100)
+            offset = amplitude * 0.5
             snow = amplitude * np.sin(np.pi * i / dates.size) + offset
-            snow_depths.append(max(0, snow + np.random.uniform(-10, 10))) # Add some random noise
+            # Add random noise and ensure depths don't drop below zero
+            snow_depths.append(max(0, snow + np.random.uniform(-10, 10)))
 
-        # Store the synthetic data for this season
         df = pd.DataFrame({'Date': dates, 'Snow_Depth_cm': snow_depths, 'Season': season_label})
         all_data.append(df)
-    
+
     return pd.concat(all_data).reset_index(drop=True)
 
 # Generate the data
 df = generate_synthetic_data()
 
-# --- 2. Visualize the Data ---
-plt.style.use('ggplot')  # Use a nice-looking plot style
+# --- 2. Visualize the Data with a Density Plot ---
 
-# Create the plot
-plt.figure(figsize=(15, 8))
+plt.style.use('seaborn-v0_8-whitegrid') # A clean style for the plot
 
-# Get the unique seasons to plot each one separately
-seasons = df['Season'].unique()
+# Create the figure and axes for the plot
+plt.figure(figsize=(12, 8))
 
-# Define a color palette for the different seasons
-colors = plt.cm.viridis(np.linspace(0, 1, len(seasons)))
-
-# Plot each season's data
-for i, season in enumerate(seasons):
-    season_data = df[df['Season'] == season]
-    plt.plot(season_data['Date'], season_data['Snow_Depth_cm'], label=season, color=colors[i], lw=2)
+# Create the Kernel Density Estimate plot using seaborn
+# The `fill=True` parameter shades the area under the density curve.
+# The `hue='Season'` parameter creates a separate density plot for each winter season.
+sns.kdeplot(data=df, x='Snow_Depth_cm', hue='Season', fill=True, common_norm=False,
+            palette='viridis', alpha=0.6, linewidth=2)
 
 # --- 3. Customize the Graph ---
-plt.title('Simulated Historical Snow Depth for Poiana Brașov (5 Years)', fontsize=16)
-plt.xlabel('Date', fontsize=12)
-plt.ylabel('Snow Depth (cm)', fontsize=12)
-plt.legend(title='Winter Season', loc='upper left', bbox_to_anchor=(1, 1))
-plt.grid(True, linestyle='--', alpha=0.6)
-plt.tight_layout(rect=[0, 0, 0.85, 1]) # Adjust layout to make room for the legend
-plt.xticks(rotation=45) # Rotate x-axis labels for better readability
+plt.title('Density Plot of Snow Depth for Poiana Brașov (5 Years)', fontsize=16)
+plt.xlabel('Snow Depth (cm)', fontsize=12)
+plt.ylabel('Density', fontsize=12) # 'Density' here refers to the probability density
+plt.legend(title='Winter Season', loc='upper left')
 
-# Add annotations for typical peak season conditions
-plt.text(pd.to_datetime('2023-01-15'), 120, 'Typical Peak Season', 
-         fontsize=10, color='darkgreen', ha='center',
-         bbox=dict(boxstyle='round,pad=0.3', fc='lightgreen', alpha=0.5))
+# Add a vertical line at the peak of the average snow depth for all seasons
+average_snow_depth = df['Snow_Depth_cm'].mean()
+plt.axvline(average_snow_depth, color='red', linestyle='--', label=f'Overall Average ({average_snow_depth:.2f} cm)')
+plt.legend(title='Winter Season')
 
-# Display the plot
 plt.show()
